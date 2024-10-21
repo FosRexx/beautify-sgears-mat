@@ -1,27 +1,30 @@
 import argparse
 import pandas as pd
+from openpyxl import Workbook
 
 
-def main():
-    parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Beautify Silent Gear's Material Dump"
-    )
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Beautify Silent Gear's Material Dump")
     parser.add_argument(
         "-i",
         "--input",
         required=False,
         type=str,
         help="Path to Silent Gear's Materials TSV dump",
+        default="./DELETELATER/material_export.tsv",
     )
-    args: argparse.Namespace = parser.parse_args()
+    args = parser.parse_args()
 
-    # Remove later
-    if not args.input:
-        args.input = "./DELETELATER/material_export.tsv"
+    return args.input
 
-    output_file: str = "./materials_beautified.csv"
 
-    required_fieldnames: list[str] = [
+def main():
+    input_file = parse_arguments()
+
+    output_file = "./materials_beautified.csv"
+
+    required_fieldnames = [
         # Random
         "Name",  # df4343
         "Type",  # ee3f72
@@ -48,7 +51,7 @@ def main():
         "Ranged Speed",
         "Projectile Speed",
         "Projectile Accuracy",
-        # Armor#00f5c5
+        # Armor #00f5c5
         "Armor",
         "Armor Toughness",
         "Knockback Resistance",
@@ -57,22 +60,60 @@ def main():
         "Traits",
     ]
 
-    with open(args.input, newline="") as material_export_file:
-        materials: pd.DataFrame = pd.read_csv(material_export_file, sep="\t")
+    # Read the materials TSV file
+    materials = pd.read_csv(input_file, sep="\t")
 
-        print(type(materials))
+    # # DEBUG
+    # # Print the first few rows to check the data
+    # print("Initial DataFrame:")
+    # print(materials.head())
+    #
+    # # Check for NaN in 'Parent' and 'ID' values
+    # print("Checking filtering conditions:")
+    # print("NaN in 'Parent':", materials["Parent"].isna().sum())
+    # print("Non-matching 'ID':", (materials["ID"] == "silentgear:example").sum())
 
-        materials = materials[
-            materials["Parent"].isna() & (materials["ID"] != "silentgear:example")
-        ]
+    # Filter and sort materials DataFrame
+    materials = (
+        (
+            materials[
+                materials["Parent"].isna() & (materials["ID"] != "silentgear:example")
+            ][required_fieldnames]
+        )
+        .sort_values(["Type", "Tier"])
+        .reset_index(drop=True)
+    )
 
-        materials = materials[required_fieldnames]
+    # Adding empty Blank Rows when value in "Type" column changes?
+    mask = materials["Type"].ne(materials["Type"].shift(-1))
 
-        print(materials.columns)
+    print(mask.head(12))
 
-        # materials.to_csv(output_file, sep="\t", index=False)
+    empty_df = pd.DataFrame("", index=mask.index[mask] + 0.5, columns=materials.columns)
 
-        # materials = csv.reader
+    materials = (
+        pd.concat([materials, empty_df]).sort_index().reset_index(drop=True).iloc[:-1]
+    )
+
+    # Output the filtered DataFrame
+    print(materials.head(12))
+
+    # wb = Workbook()
+    #
+    # general_ws = wb.create_sheet("General", 0)
+    # tools_ws = wb.create_sheet("Tools", 1)
+    # weapons_ws = wb.create_sheet("Weapons", 2)
+    # armor_ws = wb.create_sheet("Armor", 3)
+    #
+    # general_ws.append(required_fieldnames)
+    #
+    # for row in materials:
+    #     general_ws.append(row.values.tolist())
+
+    # wb.save("materials_beautified.xlsx")
+
+    # Uncomment to save the beautified DataFrame to CSV
+    materials.to_csv(output_file, sep="\t", index=False)
 
 
 if __name__ == "__main__":
