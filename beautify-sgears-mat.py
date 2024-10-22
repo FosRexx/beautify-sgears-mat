@@ -3,42 +3,51 @@ import pandas as pd
 import os
 from styleframe import StyleFrame, Styler
 
-# Define the required fields with comments indicating sections and bg_color
-REQUIRED_FIELDS: list = [
+# Required fields dict with keys as fields and their respective values as background color
+REQUIRED_FIELDS_DICT: dict = {
     # General Fields
-    "Name",  # df4343
-    "Type",  # ee3f72
-    "Tier",  # f04ca3
-    "Rarity",  # e464d1
-    "Enchantment Value",  # c87ff9
-    "Charging Value",  # 9d9cff
-    # Durability and Repair #72b3ff
-    "Durability",
-    "Armor Durability",
-    "Repair Efficiency",
-    "Repair Bonus",
-    # Harvesting #3dc3ff
-    "Harvest Speed",
-    # Reach and Range #00d2ff
-    "Reach Distance",
-    # Attack Attributes #00def8
-    "Attack Damage",
-    "Attack Speed",
-    "Attack Reach",
-    "Magic Damage",
-    # Ranged and Projectile Attributes #00eae3
-    "Ranged Damage",
-    "Ranged Speed",
-    "Projectile Speed",
-    "Projectile Accuracy",
-    # Armor Attributes #00f5c5
-    "Armor",
-    "Armor Toughness",
-    "Knockback Resistance",
-    "Magic Armor",
-    # Traits #70faa7
-    "Traits",
-]
+    "Name": "#00ffff",
+    "Type": "#f4cccc",
+    "Tier": "#b6d7a8",
+    "Rarity": "#a4c2f4",
+    "Enchantment Value": "#6fa8dc",
+    "Charging Value": "#9d9cff",
+    #
+    # Durability and Repair
+    "Durability": "#e6b8af",
+    "Armor Durability": "#e6b8af",
+    "Repair Efficiency": "#e6b8af",
+    "Repair Bonus": "#e6b8af",
+    #
+    # Harvesting
+    "Harvest Speed": "#ffe599",
+    #
+    # Reach and Range
+    "Reach Distance": "#00d2ff",
+    #
+    # Attack Attributes
+    "Attack Damage": "#e06666",
+    "Attack Speed": "#e06666",
+    "Attack Reach": "#e06666",
+    "Magic Damage": "#e06666",
+    #
+    # Ranged and Projectile Attributes
+    "Ranged Damage": "#93c47d",
+    "Ranged Speed": "#93c47d",
+    "Projectile Speed": "#93c47d",
+    "Projectile Accuracy": "#93c47d",
+    #
+    # Armor Attributes
+    "Armor": "#b7b7b7",
+    "Armor Toughness": "#b7b7b7",
+    "Knockback Resistance": "#b7b7b7",
+    "Magic Armor": "#b7b7b7",
+    #
+    # Traits
+    "Traits": "#c27ba0",
+}
+
+REQUIRED_FIELDS = list(REQUIRED_FIELDS_DICT.keys())
 
 
 def parse_arguments() -> tuple[str, str]:
@@ -103,7 +112,10 @@ def style_columns(
     """Apply background color styling to specific columns."""
     styler = Styler(bg_color=background_color)
     style_frame.apply_column_style(
-        cols_to_style=columns_to_style, styler_obj=styler, style_header=True
+        cols_to_style=columns_to_style,
+        styler_obj=styler,
+        style_header=True,
+        overwrite_default_style=False,
     )
 
 
@@ -112,8 +124,12 @@ def write_to_excel(
 ):
     """Write the styled DataFrame to an Excel file."""
     with StyleFrame.ExcelWriter(output_path) as writer:
+        StyleFrame.A_FACTOR = 8
+        StyleFrame.P_FACTOR = 1.2
         style_frame.to_excel(
-            excel_writer=writer, sheet_name=sheet_name, best_fit=REQUIRED_FIELDS
+            excel_writer=writer,
+            sheet_name=sheet_name,
+            best_fit=REQUIRED_FIELDS,
         )
 
 
@@ -130,17 +146,31 @@ def main():
     # Add blank rows after each change in the 'Type' column
     materials_df = add_blank_rows(materials_df, "Type")
 
-    # Preview the first 12 rows of the DataFrame (for debugging purposes)
-    print(materials_df.head(12))
-
     # Create a StyleFrame object for styling the DataFrame
     style_frame = StyleFrame(
         obj=materials_df,
-        styler_obj=Styler(horizontal_alignment="left", vertical_alignment="center"),
+        styler_obj=Styler(
+            horizontal_alignment="justify",
+            vertical_alignment="justify",
+            wrap_text=False,
+            shrink_to_fit=False,
+        ),
     )
 
     # Apply color to the 'Name' column
-    style_columns(style_frame, ["Name"], "light blue")
+    for key, value in REQUIRED_FIELDS_DICT.items():
+        style_columns(
+            style_frame=style_frame, columns_to_style=key, background_color=value
+        )
+
+    style_frame = style_frame.apply_style_by_indexes(
+        style_frame[style_frame["Name"] == ""],
+        styler_obj=Styler(bg_color="black", border_type="thick"),
+    )
+
+    style_frame = style_frame.apply_headers_style(
+        styler_obj=Styler(bold=True, border_type="thick"),
+    )
 
     # Write the styled DataFrame to an Excel file
     write_to_excel(style_frame, output_file)
