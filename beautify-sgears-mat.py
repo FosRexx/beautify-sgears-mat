@@ -1,7 +1,6 @@
 import argparse
 import pandas as pd
 import os
-from styleframe import StyleFrame, Styler
 
 # Required fields dict with keys as fields and their respective values as background color
 REQUIRED_FIELDS_DICT: dict = {
@@ -106,31 +105,95 @@ def add_blank_rows(df: pd.DataFrame, group_by_column: str) -> pd.DataFrame:
     return expanded_df
 
 
-def style_columns(
-    style_frame: StyleFrame, columns_to_style: list[str], background_color: str
-):
-    """Apply background color styling to specific columns."""
-    styler = Styler(bg_color=background_color)
-    style_frame.apply_column_style(
-        cols_to_style=columns_to_style,
-        styler_obj=styler,
-        style_header=True,
-        overwrite_default_style=False,
+def auto_adjust_column_width(writer: pd.ExcelWriter, df: pd.DataFrame, sheet_name: str):
+    # https://stackoverflow.com/a/40535454
+    #
+    # # Given a dict of dataframes, for example:
+    # # dfs = {'gadgets': df_gadgets, 'widgets': df_widgets}
+    #
+    # writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+    # for sheetname, df in dfs.items():  # loop through `dict` of dataframes
+    #     df.to_excel(writer, sheet_name=sheetname)  # send df to writer
+    #     worksheet = writer.sheets[sheetname]  # pull worksheet object
+    #     for idx, col in enumerate(df):  # loop through all columns
+    #         series = df[col]
+    #         max_len = (
+    #             max(
+    #                 (
+    #                     series.astype(str).map(len).max(),  # len of largest item
+    #                     len(str(series.name)),  # len of column name/header
+    #                 )
+    #             )
+    #             + 1
+    #         )  # adding a little extra space
+    #         worksheet.set_column(idx, idx, max_len)  # set column width
+    # writer.save()
+
+    df.to_excel(excel_writer=writer, sheet_name=sheet_name, index=False)
+
+    worksheet = writer.sheets[sheet_name]
+    worksheet.freeze_panes(1, 1)
+
+    for idx, col in enumerate(df):
+        series = df[col]
+        max_len = max(series.astype(str).map(len).max(), len(str(series.name))) + 4
+        worksheet.set_column(idx, idx, max_len)
+
+
+def style_index(series: pd.Series, REQUIRED_FIELDS_DICT):
+    return [
+        f"background-color: {REQUIRED_FIELDS_DICT.get(value)}; \
+          border-bottom-style: solid; \
+          border-width: 2px; \
+          border-color: black; \
+          font-family: arial; \
+          font-weight: bold; \
+          text-align: justify; \
+          "
+        for value in series
+    ]
+
+
+def style_table(df: pd.DataFrame):
+    return pd.DataFrame(
+        "font-family: arial; \
+         text-align: justify; \
+        ",
+        index=df.index,
+        columns=df.columns,
     )
 
 
-def write_to_excel(
-    style_frame: StyleFrame, output_path: str, sheet_name: str = "General"
-):
-    """Write the styled DataFrame to an Excel file."""
-    with StyleFrame.ExcelWriter(output_path) as writer:
-        StyleFrame.A_FACTOR = 8
-        StyleFrame.P_FACTOR = 1.2
-        style_frame.to_excel(
-            excel_writer=writer,
-            sheet_name=sheet_name,
-            best_fit=REQUIRED_FIELDS,
-        )
+def style_row(series: pd.Series, df: pd.DataFrame):
+    css: str = ""
+
+    # Create a mask to identify where the tier value changes
+    change_mask = df["Tier"].ne(df["Tier"].shift(-1))
+
+    if not series.get("Name"):
+        css += "background-color: black;"
+    if change_mask[series.name]:
+        css += "border-bottom-style: solid; \
+                border-width: 1px; \
+                border-color:#0d151b; \
+                "
+
+    return [css] * len(series)
+
+
+def style_column(series: pd.Series, REQUIRED_FIELDS_DICT):
+    """
+    Apply background color to specific columns as defined in REQUIRED_FIELDS_DICT.
+    """
+    css: str = f"background-color: {REQUIRED_FIELDS_DICT.get(series.name)};"
+
+    if series.name == "Name":
+        css += "border-left-style: solid; \
+                border-width: 1px; \
+                border-color: black; \
+                "
+
+    return [css] * len(series)
 
 
 def main():
@@ -146,34 +209,25 @@ def main():
     # Add blank rows after each change in the 'Type' column
     materials_df = add_blank_rows(materials_df, "Type")
 
-    # Create a StyleFrame object for styling the DataFrame
-    style_frame = StyleFrame(
-        obj=materials_df,
-        styler_obj=Styler(
-            horizontal_alignment="justify",
-            vertical_alignment="justify",
-            wrap_text=False,
-            shrink_to_fit=False,
-        ),
-    )
+    writer = pd.ExcelWriter(output_file, engine="xlsxwriter")
 
-    # Apply color to the 'Name' column
-    for key, value in REQUIRED_FIELDS_DICT.items():
-        style_columns(
-            style_frame=style_frame, columns_to_style=key, background_color=value
+    auto_adjust_column_width(writer, materials_df, "General")
+
+    # materials_df.apply_index(lambda series: print(series), axis="index")
+
+    # Apply styles and save the styled DataFrame
+    styled_df = (
+        materials_df.style.apply(style_table, axis=None)
+        .apply_index(
+            style_index, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="columns"
         )
-
-    style_frame = style_frame.apply_style_by_indexes(
-        style_frame[style_frame["Name"] == ""],
-        styler_obj=Styler(bg_color="black", border_type="thick"),
+        .apply(style_column, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="index")
+        .apply(style_row, df=materials_df, axis="columns")
     )
 
-    style_frame = style_frame.apply_headers_style(
-        styler_obj=Styler(bold=True, border_type="thick"),
-    )
+    styled_df.to_excel(writer, sheet_name="General", index=False)
 
-    # Write the styled DataFrame to an Excel file
-    write_to_excel(style_frame, output_file)
+    writer.close()
 
 
 if __name__ == "__main__":
