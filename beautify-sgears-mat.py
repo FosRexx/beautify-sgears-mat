@@ -62,19 +62,22 @@ def parse_arguments() -> tuple[str, str]:
     )
 
     parser.add_argument(
-        "-o", "--output", type=str, default=".", help="Path to the output directory"
+        "-o",
+        "--output",
+        type=str,
+        default=".",
+        help="Path to the output directory",
     )
 
     args = parser.parse_args()
 
-    output_file = os.path.join(args.output, "materials_beautified.xlsx")
-    return args.input, output_file
+    return args.input, os.path.join(args.output, "materials_beautified.xlsx")
 
 
 def filter_and_sort_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Filter the DataFrame to exclude rows where 'Parent' is not null and 'ID'
-    is not equal to 'silentgear:example'. Then, sort by 'Type' and 'Tier'.
+    is equal to 'silentgear:example'. Then, sort by 'Type' and 'Tier'.
     """
     filtered_df = df[df["Parent"].isna() & (df["ID"] != "silentgear:example")]
     return (
@@ -99,7 +102,7 @@ def add_blank_rows(df: pd.DataFrame, group_by_column: str) -> pd.DataFrame:
 
     # Concatenate the original DataFrame with the empty rows
     expanded_df = (
-        pd.concat([df, empty_rows]).sort_index().reset_index(drop=True).iloc[:-1]
+        pd.concat([df, empty_rows]).sort_index().reset_index(drop=True)  # .iloc[:-1]
     )
 
     return expanded_df
@@ -140,13 +143,12 @@ def auto_adjust_column_width(writer: pd.ExcelWriter, df: pd.DataFrame, sheet_nam
         worksheet.set_column(idx, idx, max_len)
 
 
-def style_index(series: pd.Series, REQUIRED_FIELDS_DICT):
+def style_index(series: pd.Series, field_color: dict):
     return [
-        f"background-color: {REQUIRED_FIELDS_DICT.get(value)}; \
-          border-bottom-style: solid; \
-          border-width: 2px; \
-          border-color: black; \
-          font-family: arial; \
+        f"background-color: {field_color.get(value)}; \
+          border-bottom: 2px solid black; \
+          {'border-right: 2px solid black;' if value == 'Name' else ''} \
+          font-family: Arial; \
           font-weight: bold; \
           text-align: justify; \
           "
@@ -156,7 +158,8 @@ def style_index(series: pd.Series, REQUIRED_FIELDS_DICT):
 
 def style_table(df: pd.DataFrame):
     return pd.DataFrame(
-        "font-family: arial; \
+        "font-family: Arial; \
+         border: 1px thin black; \
          text-align: justify; \
         ",
         index=df.index,
@@ -167,31 +170,28 @@ def style_table(df: pd.DataFrame):
 def style_row(series: pd.Series, df: pd.DataFrame):
     css: str = ""
 
-    # Create a mask to identify where the tier value changes
+    # Create a mask to identify where the Tier value changes
     change_mask = df["Tier"].ne(df["Tier"].shift(-1))
 
     if not series.get("Name"):
         css += "background-color: black;"
+
     if change_mask[series.name]:
-        css += "border-bottom-style: solid; \
-                border-width: 1px; \
-                border-color:#0d151b; \
-                "
+        css += "border-bottom: 1px solid #0d151b;"
+    else:
+        css += "border-bottom: 1px dotted gray;"
 
     return [css] * len(series)
 
 
-def style_column(series: pd.Series, REQUIRED_FIELDS_DICT):
+def style_column(series: pd.Series, field_color: dict):
     """
-    Apply background color to specific columns as defined in REQUIRED_FIELDS_DICT.
+    Apply background color to specific columns as defined in field_color.
     """
-    css: str = f"background-color: {REQUIRED_FIELDS_DICT.get(series.name)};"
+    css: str = f"background-color: {field_color.get(series.name)};"
 
     if series.name == "Name":
-        css += "border-left-style: solid; \
-                border-width: 1px; \
-                border-color: black; \
-                "
+        css += "border-right: 2px solid black;"
 
     return [css] * len(series)
 
@@ -209,25 +209,18 @@ def main():
     # Add blank rows after each change in the 'Type' column
     materials_df = add_blank_rows(materials_df, "Type")
 
-    writer = pd.ExcelWriter(output_file, engine="xlsxwriter")
+    with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
+        auto_adjust_column_width(writer, materials_df, "General")
 
-    auto_adjust_column_width(writer, materials_df, "General")
-
-    # materials_df.apply_index(lambda series: print(series), axis="index")
-
-    # Apply styles and save the styled DataFrame
-    styled_df = (
-        materials_df.style.apply(style_table, axis=None)
-        .apply_index(
-            style_index, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="columns"
+        # Apply styles and save the styled DataFrame
+        styled_df = (
+            materials_df.style.apply(style_table, axis=None)
+            .apply_index(style_index, field_color=REQUIRED_FIELDS_DICT, axis="columns")
+            .apply(style_column, field_color=REQUIRED_FIELDS_DICT, axis="index")
+            .apply(style_row, df=materials_df, axis="columns")
         )
-        .apply(style_column, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="index")
-        .apply(style_row, df=materials_df, axis="columns")
-    )
 
-    styled_df.to_excel(writer, sheet_name="General", index=False)
-
-    writer.close()
+        styled_df.to_excel(writer, sheet_name="General", index=False)
 
 
 if __name__ == "__main__":
