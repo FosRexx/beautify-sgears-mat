@@ -71,7 +71,9 @@ def parse_arguments() -> tuple[str, str]:
 
     args = parser.parse_args()
 
-    return args.input, os.path.join(args.output, "materials_beautified.xlsx")
+    output_file = os.path.join(args.output, "materials_beautified.xlsx")
+
+    return (args.input, output_file)
 
 
 def filter_and_sort_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -108,7 +110,9 @@ def add_blank_rows(df: pd.DataFrame, group_by_column: str) -> pd.DataFrame:
     return expanded_df
 
 
-def auto_adjust_column_width(writer: pd.ExcelWriter, df: pd.DataFrame, sheet_name: str):
+def auto_adjust_column_width(
+    writer: pd.ExcelWriter, df: pd.DataFrame, sheet_name: str
+) -> pd.DataFrame:
     # https://stackoverflow.com/a/40535454
     #
     # # Given a dict of dataframes, for example:
@@ -142,13 +146,15 @@ def auto_adjust_column_width(writer: pd.ExcelWriter, df: pd.DataFrame, sheet_nam
         max_len = max(series.astype(str).map(len).max(), len(str(series.name))) + 4
         worksheet.set_column(idx, idx, max_len)
 
+    return df
+
 
 def style_index(series: pd.Series, field_color: dict):
     return [
         f"background-color: {field_color.get(value)}; \
           border-bottom: 2px solid black; \
           {'border-right: 2px solid black;' if value == 'Name' else ''} \
-          font-family: Arial; \
+          font-family: arial; \
           font-weight: bold; \
           text-align: justify; \
           "
@@ -158,7 +164,7 @@ def style_index(series: pd.Series, field_color: dict):
 
 def style_table(df: pd.DataFrame):
     return pd.DataFrame(
-        "font-family: Arial; \
+        "font-family: arial; \
          border: 1px thin black; \
          text-align: justify; \
         ",
@@ -210,7 +216,7 @@ def main():
     materials_df = add_blank_rows(materials_df, "Type")
 
     with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
-        auto_adjust_column_width(writer, materials_df, "General")
+        materials_df = auto_adjust_column_width(writer, materials_df, "General")
 
         # Apply styles and save the styled DataFrame
         styled_df = (
