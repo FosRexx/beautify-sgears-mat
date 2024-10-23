@@ -2,57 +2,40 @@ import argparse
 import pandas as pd
 import os
 
-# Required fields dict with keys as fields and their respective values as background color
+# Background colors for required fields
 REQUIRED_FIELDS_DICT: dict = {
-    # General Fields
     "Name": "#00ffff",
     "Type": "#f4cccc",
     "Tier": "#b6d7a8",
     "Rarity": "#a4c2f4",
     "Enchantment Value": "#6fa8dc",
     "Charging Value": "#9d9cff",
-    #
-    # Durability and Repair
     "Durability": "#e6b8af",
     "Armor Durability": "#e6b8af",
     "Repair Efficiency": "#e6b8af",
     "Repair Bonus": "#e6b8af",
-    #
-    # Harvesting
     "Harvest Speed": "#ffe599",
-    #
-    # Reach and Range
     "Reach Distance": "#00d2ff",
-    #
-    # Attack Attributes
     "Attack Damage": "#e06666",
     "Attack Speed": "#e06666",
     "Attack Reach": "#e06666",
     "Magic Damage": "#e06666",
-    #
-    # Ranged and Projectile Attributes
     "Ranged Damage": "#93c47d",
     "Ranged Speed": "#93c47d",
     "Projectile Speed": "#93c47d",
     "Projectile Accuracy": "#93c47d",
-    #
-    # Armor Attributes
     "Armor": "#b7b7b7",
     "Armor Toughness": "#b7b7b7",
     "Knockback Resistance": "#b7b7b7",
     "Magic Armor": "#b7b7b7",
-    #
-    # Traits
     "Traits": "#c27ba0",
 }
-
 REQUIRED_FIELDS = list(REQUIRED_FIELDS_DICT.keys())
 
 
 def parse_arguments() -> tuple[str, str]:
-    """Parse and return command-line arguments."""
+    """Parse and return input and output file paths."""
     parser = argparse.ArgumentParser(description="Beautify Silent Gear's Material Dump")
-
     parser.add_argument(
         "-i",
         "--input",
@@ -60,11 +43,9 @@ def parse_arguments() -> tuple[str, str]:
         default="./DELETELATER/material_export.tsv",
         help="Path to Silent Gear's Materials TSV dump",
     )
-
     parser.add_argument(
         "-o", "--output", type=str, default=".", help="Path to the output directory"
     )
-
     args = parser.parse_args()
 
     output_file = os.path.join(args.output, "materials_beautified.xlsx")
@@ -72,10 +53,7 @@ def parse_arguments() -> tuple[str, str]:
 
 
 def filter_and_sort_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Filter the DataFrame to exclude rows where 'Parent' is not null and 'ID'
-    is not equal to 'silentgear:example'. Then, sort by 'Type' and 'Tier'.
-    """
+    """Filter rows where 'Parent' is null and 'ID' is not 'silentgear:example', then sort by 'Type' and 'Tier'."""
     filtered_df = df[df["Parent"].isna() & (df["ID"] != "silentgear:example")]
     return (
         filtered_df[REQUIRED_FIELDS]
@@ -85,149 +63,85 @@ def filter_and_sort_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_blank_rows(df: pd.DataFrame, group_by_column: str) -> pd.DataFrame:
-    """
-    Insert blank rows whenever the value in `group_by_column` changes.
-    This is useful for visually separating different categories in the output.
-    """
-    # Create a mask to identify where the column value changes
+    """Insert blank rows whenever the value in `group_by_column` changes for better visual separation."""
     change_mask = df[group_by_column].ne(df[group_by_column].shift(-1))
-
-    # Create an empty DataFrame to insert the blank rows
     empty_rows = pd.DataFrame(
         "", index=change_mask.index[change_mask] + 0.5, columns=df.columns
     )
-
-    # Concatenate the original DataFrame with the empty rows
-    expanded_df = (
-        pd.concat([df, empty_rows]).sort_index().reset_index(drop=True).iloc[:-1]
-    )
-
-    return expanded_df
+    return pd.concat([df, empty_rows]).sort_index().reset_index(drop=True).iloc[:-1]
 
 
 def auto_adjust_column_width(writer: pd.ExcelWriter, df: pd.DataFrame, sheet_name: str):
-    # https://stackoverflow.com/a/40535454
-    #
-    # # Given a dict of dataframes, for example:
-    # # dfs = {'gadgets': df_gadgets, 'widgets': df_widgets}
-    #
-    # writer = pd.ExcelWriter(filename, engine="xlsxwriter")
-    # for sheetname, df in dfs.items():  # loop through `dict` of dataframes
-    #     df.to_excel(writer, sheet_name=sheetname)  # send df to writer
-    #     worksheet = writer.sheets[sheetname]  # pull worksheet object
-    #     for idx, col in enumerate(df):  # loop through all columns
-    #         series = df[col]
-    #         max_len = (
-    #             max(
-    #                 (
-    #                     series.astype(str).map(len).max(),  # len of largest item
-    #                     len(str(series.name)),  # len of column name/header
-    #                 )
-    #             )
-    #             + 1
-    #         )  # adding a little extra space
-    #         worksheet.set_column(idx, idx, max_len)  # set column width
-    # writer.save()
-
+    """Adjust column widths in Excel sheet based on the maximum content length."""
     df.to_excel(excel_writer=writer, sheet_name=sheet_name, index=False)
-
     worksheet = writer.sheets[sheet_name]
     worksheet.freeze_panes(1, 1)
 
     for idx, col in enumerate(df):
-        series = df[col]
-        max_len = max(series.astype(str).map(len).max(), len(str(series.name))) + 4
+        max_len = max(df[col].astype(str).map(len).max(), len(col)) + 4
         worksheet.set_column(idx, idx, max_len)
 
 
-def style_index(series: pd.Series, REQUIRED_FIELDS_DICT):
+def style_index(series: pd.Series, field_colors: dict):
+    """Apply style to the index (fields) of the table based on predefined colors."""
     return [
-        f"background-color: {REQUIRED_FIELDS_DICT.get(value)}; \
-          border-bottom-style: solid; \
-          border-width: 2px; \
-          border-color: black; \
-          font-family: arial; \
-          font-weight: bold; \
-          text-align: justify; \
-          "
+        f"background-color: {field_colors.get(value)}; border-bottom: 2px solid black; "
+        "font-family: arial; font-weight: bold; text-align: justify;"
         for value in series
     ]
 
 
 def style_table(df: pd.DataFrame):
+    """Apply general styles to the entire DataFrame."""
     return pd.DataFrame(
-        "font-family: arial; \
-         text-align: justify; \
-        ",
-        index=df.index,
-        columns=df.columns,
+        "font-family: arial; text-align: justify;", index=df.index, columns=df.columns
     )
 
 
 def style_row(series: pd.Series, df: pd.DataFrame):
-    css: str = ""
-
-    # Create a mask to identify where the tier value changes
-    change_mask = df["Tier"].ne(df["Tier"].shift(-1))
-
+    """Apply row-specific styles, such as a black background for blank rows and border styles for category changes."""
+    css = ""
     if not series.get("Name"):
         css += "background-color: black;"
-    if change_mask[series.name]:
-        css += "border-bottom-style: solid; \
-                border-width: 1px; \
-                border-color:#0d151b; \
-                "
-
+    if df["Tier"].ne(df["Tier"].shift(-1))[series.name]:
+        css += "border-bottom: 1px solid #0d151b;"
     return [css] * len(series)
 
 
-def style_column(series: pd.Series, REQUIRED_FIELDS_DICT):
-    """
-    Apply background color to specific columns as defined in REQUIRED_FIELDS_DICT.
-    """
-    css: str = f"background-color: {REQUIRED_FIELDS_DICT.get(series.name)};"
-
+def style_column(series: pd.Series, field_colors: dict):
+    """Apply background color to specific columns based on predefined field colors."""
+    css = f"background-color: {field_colors.get(series.name)};"
     if series.name == "Name":
-        css += "border-left-style: solid; \
-                border-width: 1px; \
-                border-color: black; \
-                "
-
+        css += "border-left: 1px solid black;"
     return [css] * len(series)
 
 
 def main():
+    """Main function to read, process, style, and save the material dump to an Excel file."""
     # Parse input and output file paths
     input_file, output_file = parse_arguments()
 
-    # Read the TSV file into a DataFrame
+    # Load TSV file into DataFrame
     materials_df = pd.read_csv(input_file, sep="\t")
 
-    # Filter and sort the DataFrame based on required fields
+    # Filter and sort data, then add blank rows for better visual separation
     materials_df = filter_and_sort_df(materials_df)
-
-    # Add blank rows after each change in the 'Type' column
     materials_df = add_blank_rows(materials_df, "Type")
 
-    writer = pd.ExcelWriter(output_file, engine="xlsxwriter")
+    # Create an Excel writer and adjust column widths
+    with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
+        auto_adjust_column_width(writer, materials_df, "General")
 
-    auto_adjust_column_width(writer, materials_df, "General")
-
-    # materials_df.apply_index(lambda series: print(series), axis="index")
-
-    # Apply styles and save the styled DataFrame
-    styled_df = (
-        materials_df.style.apply(style_table, axis=None)
-        .apply_index(
-            style_index, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="columns"
+        # Apply styling and save to Excel
+        styled_df = (
+            materials_df.style.apply(
+                style_index, field_colors=REQUIRED_FIELDS_DICT, axis="columns"
+            )
+            .apply(style_table, axis=None)
+            .apply(style_column, field_colors=REQUIRED_FIELDS_DICT, axis="index")
+            .apply(style_row, df=materials_df, axis="columns")
         )
-        .apply(style_column, REQUIRED_FIELDS_DICT=REQUIRED_FIELDS_DICT, axis="index")
-        .apply(style_row, df=materials_df, axis="columns")
-    )
-
-    styled_df.to_excel(writer, sheet_name="General", index=False)
-
-    writer.close()
+        styled_df.to_excel(writer, sheet_name="General", index=False)
 
 
 if __name__ == "__main__":
