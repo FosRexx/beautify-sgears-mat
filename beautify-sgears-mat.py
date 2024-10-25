@@ -16,7 +16,8 @@ def parse_arguments() -> Tuple[str, str]:
         "-i",
         "--input",
         type=str,
-        default="./DELETELATER/material_export.tsv",
+        # default="./DELETELATER/material_export.tsv",
+        required=True,
         help="Path to Silent Gear's Materials TSV dump",
     )
 
