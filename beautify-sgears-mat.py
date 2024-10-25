@@ -110,7 +110,7 @@ def style_row(series: pd.Series, df: pd.DataFrame) -> List[str]:
     """
     Apply styles to rows, including background color and border adjustments.
     """
-    css = "background-color: black;" if pd.isna(series["Name"]) else ""
+    css = "background-color: black;" if not series.get("Name") else ""
 
     change_mask = df["Tier"].ne(df["Tier"].shift(-1))
 
