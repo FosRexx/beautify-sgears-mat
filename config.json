@@ -1,0 +1,95 @@
+{
+  "headers": {
+    "Name": "#00ffff",
+    "Type": "#f4cccc",
+    "Tier": "#b6d7a8",
+    "Rarity": "#a4c2f4",
+    "Enchantment Value": "#6fa8dc",
+    "Durability": "#e6b8af",
+    "Repair Efficiency": "#e6b8af",
+    "Repair Bonus": "#e6b8af",
+    "Harvest Speed": "#ffe599",
+    "Reach Distance": "#00d2ff",
+    "Attack Damage": "#e06666",
+    "Attack Speed": "#e06666",
+    "Attack Reach": "#e06666",
+    "Magic Damage": "#e06666",
+    "Ranged Damage": "#93c47d",
+    "Ranged Speed": "#93c47d",
+    "Projectile Speed": "#93c47d",
+    "Projectile Accuracy": "#93c47d",
+    "Armor": "#b7b7b7",
+    "Armor Durability": "#b7b7b7",
+    "Armor Toughness": "#b7b7b7",
+    "Knockback Resistance": "#b7b7b7",
+    "Magic Armor": "#b7b7b7",
+    "Traits": "#c27ba0",
+    "Charging Value": "#9d9cff"
+  },
+  "tool": {
+    "headers": [
+      "Name",
+      "Type",
+      "Tier",
+      "Rarity",
+      "Enchantment Value",
+      "Durability",
+      "Repair Efficiency",
+      "Repair Bonus",
+      "Harvest Speed",
+      "Reach Distance",
+      "Traits"
+    ],
+    "parts": ["Binding", "Coating", "Grip", "Main", "Tip Upgrade", "Tool Rod"]
+  },
+  "weapon": {
+    "headers": [
+      "Name",
+      "Type",
+      "Tier",
+      "Rarity",
+      "Enchantment Value",
+      "Durability",
+      "Repair Efficiency",
+      "Repair Bonus",
+      "Attack Damage",
+      "Attack Speed",
+      "Attack Reach",
+      "Magic Damage",
+      "Ranged Damage",
+      "Ranged Speed",
+      "Projectile Speed",
+      "Projectile Accuracy",
+      "Traits"
+    ],
+    "parts": [
+      "Binding",
+      "Coating",
+      "Cord",
+      "Fletching",
+      "Grip",
+      "Main",
+      "Tip Upgrade",
+      "Tool Rod"
+    ]
+  },
+  "armor": {
+    "headers": [
+      "Name",
+      "Type",
+      "Tier",
+      "Rarity",
+      "Enchantment Value",
+      "Durability",
+      "Repair Efficiency",
+      "Repair Bonus",
+      "Armor",
+      "Armor Durability",
+      "Armor Toughness",
+      "Knockback Resistance",
+      "Magic Armor",
+      "Traits"
+    ],
+    "parts": ["Adorment", "Coating", "Lining", "Main"]
+  }
+}
