@@ -68,7 +68,9 @@ file is structured accordingly. For each sheet, specify:
   as not all stats and part types are relevant to every gear category (e.g., "Armor Durability" is irrelevant for tools,
   and an armor cannot use a Cord part).
 
-
+You can also modify the colors for each headers in the general headers object, once the color is specified in general headers 
+there is no need to specify the colors for subsequent sheets.
+The General sheet contains all the Parts Type.
 
 ### 6. Run the tool
 ``` bash
