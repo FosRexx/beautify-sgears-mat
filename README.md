@@ -3,6 +3,20 @@
 A tool to convert the popular Minecraft mod [Silent Gear](https://www.curseforge.com/minecraft/mc-mods/silent-gear)'s 
 materials TSV dump into an easy-to-read, well-formatted spreadsheet.
 
+### Before
+![default_tsv_dump](https://github.com/user-attachments/assets/9dc4853e-eb65-45fd-8010-d5d4f1bb4763)
+*TSV Dump*
+
+### After
+| ![beautified_tsv_dump_tools](https://github.com/user-attachments/assets/e5437743-00f5-4470-aa56-eca0d5089037) | ![beautified_tsv_dump_weapons](https://github.com/user-attachments/assets/86e628c3-0c23-4d42-afac-27914cdb672d) |
+|:-------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------:|
+|                                                    *General*                                                  |                                                       *Tools*                                                   |
+
+| ![beautified_tsv_dump_tools](https://github.com/user-attachments/assets/466802f3-dd72-446b-ab7a-2ed012a7da1a) | ![beautified_tsv_dump_weapons](https://github.com/user-attachments/assets/e8d3a8bd-4d0d-4015-b336-4937f3d1a6b8) |
+|:-------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------:|
+|                                                    *Weapons*                                                  |                                                       *Armor*                                                   |
+
+
 ## Usage
 
 Before using this tool, you need to first obtain a materials dump from the game. This is necessary because there 
